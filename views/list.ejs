@@ -24,6 +24,7 @@
             <p>할일 마감 날짜 :<%=post.date%></p>
           </a>
           <button class="delete" data-id="<%=post._id%>">삭제</button>
+          <button class="edit"> <a href="/edit/<%=post._id%>">수정</a></button>
         </li>
       <% })%>
     </ul>
