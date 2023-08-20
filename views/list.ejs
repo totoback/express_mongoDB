@@ -47,7 +47,7 @@
         const nowClick = $(this);
         $.ajax({
           method: "DELETE",
-          url: "/delete/numberID",
+          url: "/delete/"+ numberID,
           // data: { _id: numberID },
         })
           .done((result) => {

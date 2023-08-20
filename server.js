@@ -182,28 +182,18 @@ app.post("/add", async (req, res) => {
   }
 });
 
-app.delete("/delete",(req,res)=>{
-  req.body.id = parseInt(req.body.id); // "1" -> 1 문자열을 숫자로 변경
-  //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
-  const deleteData = {id: req.body.id, user: req.user._id}
+//params
+app.delete("/delete/:id",(req,res)=>{
+  deleteID = parseInt(req.params.id); // "1" -> 1 문자열을 숫자로 변경
+  console.log(deleteID)
+  //req.params에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
+  const deleteData = {id: deleteID, user: req.user._id}
   db.collection("post").deleteOne(deleteData,(error,result)=>{
     console.log("삭제 완료")
     res.status(200).send({message:"성공 했음"});
     //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
   })
 })
-
-//params
-// app.delete("/delete/:id",(req,res)=>{
-//   // req.body._id = parseInt(req.body._id); // "1" -> 1 문자열을 숫자로 변경
-//   // console.log(req.body)
-//   //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
-//   db.collection("post").deleteOne({_id:parseInt(req.params.id)},(error,result)=>{
-//     console.log("삭제 완료")
-//     res.status(200).send({message:"성공 했음"});
-//     //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
-//   })
-// })
 
 //검색기능
 app.get('/search', async (req,res) => {
