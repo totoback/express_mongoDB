@@ -43,31 +43,7 @@ app.get("/write", (req, res) => {
   res.render("write.ejs");
 });
 
-//add에서 데이터 통신, write에서 쓴 db를 mongoDB에 저장
-app.post("/add", (req, res) => {
-  console.log(req.body) //write에 정보 객체로 봄
-  res.send("저장완료")
-  //db.counter 불러오기(총개시물 갯수 가져옴)
-  db.collection("counter").findOne({name:"게시물갯수"},(error,result)=>{
-    console.log(result.totalPost)
-    console.log(error)
-    let totalPostLength = result.totalPost;
 
-      //db.post 저장하기
-      db.collection("post").insertOne({ _id: totalPostLength + 1, title: req.body.title, date: req.body.date }, (error, result)=>{
-      console.log("저장완료")
-      // res.send("전송 완료"); //res.send의 경우 insertOne 안에 기입한다.
-
-      //counter라는 콜렉션에 있는 totalPost라는 항목도 1증가시켜야함(수정)
-      //db.conter 업데이트 1개는 One , 여러개는 Many
-      //updateOne({어떤데이터를 수정할지},{수정할값},()=>{})
-      //updateOne쓸떄 operator 써야함 = set(완전 바꿔주세요), inc(기존값에 더해줄 값)
-      db.collection("counter").updateOne({name:"게시물갯수"},{ $inc: {totalPost:1} },(error,result)=>{
-        if(error){return console.log(error)}
-      })
-    })
-  })
-});
 
 //list 보기기능, add에서 저장된 mongoDB를 불러옴
 app.get("/list",(req,res)=>{
@@ -79,38 +55,19 @@ app.get("/list",(req,res)=>{
   });
 })
 
-// app.delete("/delete",(req,res)=>{
-//   req.body._id = parseInt(req.body._id); // "1" -> 1 문자열을 숫자로 변경
-//   // console.log(req.body)
-//   //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
-//   db.collection("post").deleteOne(req.body,(error,result)=>{
-//     console.log("삭제 완료")
-//     res.status(200).send({message:"성공 했음"});
-//     //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
-//   })
-// })
-//params
-app.delete("/delete/:id",(req,res)=>{
-  // req.body._id = parseInt(req.body._id); // "1" -> 1 문자열을 숫자로 변경
-  // console.log(req.body)
-  //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
-  db.collection("post").deleteOne({_id:parseInt(req.params.id)},(error,result)=>{
-    console.log("삭제 완료")
-    res.status(200).send({message:"성공 했음"});
-    //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
-  })
-})
+
+
 
 //params
 app.get("/detail/:id",(req,res)=>{
-  db.collection("post").findOne({_id:parseInt(req.params.id)},(error, result)=>{
+  db.collection("post").findOne({id:parseInt(req.params.id)},(error, result)=>{
     console.log(result)
     res.render("detail.ejs",{data:result})
   })
 })
 
 app.get("/edit/:id",(req,res)=>{
-  db.collection("post").findOne({_id: parseInt(req.params.id)},(error,result)=>{
+  db.collection("post").findOne({id: parseInt(req.params.id)},(error,result)=>{
     console.log(result)
     res.render("edit.ejs",{post : result})
   })
@@ -118,7 +75,7 @@ app.get("/edit/:id",(req,res)=>{
 
 app.put("/edit", (req,res)=>{
   // 폼에 담긴 ejs 제목데이터, 날짜데이터를 가지고 db.collection에다가 업데이트함 
-  db.collection("post").updateOne( {_id: parseInt(req.body.id)} , {$set:{title:req.body.title, date:req.body.date} }, (error,result)=>{
+  db.collection("post").updateOne( {id: parseInt(req.body.id)} , {$set:{title:req.body.title, date:req.body.date} }, (error,result)=>{
     res.redirect("/list")
   })
 })
@@ -144,6 +101,7 @@ app.get("/login",(req,res)=>{
 //로그인
 app.post("/login", passport.authenticate('local',{failureRedirect : '/fail'}) ,(req,res)=>{
   res.redirect('/')
+  console.log(req.user)
 })
 
 
@@ -180,3 +138,99 @@ passport.deserializeUser((id,done)=>{
     done(null,result)
   })
 })
+
+//회원가입
+app.post("/register", (req,res)=>{
+  try {
+    db.collection("login").insertOne({id:req.body.id, password:req.body.password})
+    res.redirect("/")
+  } catch (error) {
+    console.log(error)
+    res.status(500).send(error)
+  }
+})
+
+// add에서 데이터 통신, write에서 쓴 db를 mongoDB에 저장
+
+app.post("/add", async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).send("로그인해라");
+    }
+    console.log(req.body) //write에 정보 객체로 봄
+
+    //db.counter 불러오기(총개시물 갯수 가져옴)
+    const counter = await db.collection("counter").findOne({ name: "게시물갯수" });
+    if (!counter) {throw new Error("Counter not found");}
+    let totalPostLength = counter.totalPost;
+    let save = {id: totalPostLength + 1, title: req.body.title, date: req.body.date, user:req.user._id}
+    //db.post 저장하기
+    await db.collection("post").insertOne(save)
+    // res.send("전송 완료"); //res.send의 경우 insertOne 안에 기입한다.
+    console.log("저장완료");
+
+    //counter라는 콜렉션에 있는 totalPost라는 항목도 1증가시켜야함(수정)
+    //db.conter 업데이트 1개는 One , 여러개는 Many
+    //updateOne({어떤데이터를 수정할지},{수정할값},()=>{})
+    //updateOne쓸떄 operator 써야함 = set(완전 바꿔주세요), inc(기존값에 더해줄 값)
+    await db.collection("counter").updateOne({ name: "게시물갯수" }, { $inc: { totalPost: 1 } });
+    res.send("저장완료");
+  } catch (error) {
+    console.log(error)
+    
+    res.status(500).send("에러난다")
+  }
+});
+
+app.delete("/delete",(req,res)=>{
+  req.body.id = parseInt(req.body.id); // "1" -> 1 문자열을 숫자로 변경
+  //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
+  const deleteData = {id: req.body.id, user: req.user._id}
+  db.collection("post").deleteOne(deleteData,(error,result)=>{
+    console.log("삭제 완료")
+    res.status(200).send({message:"성공 했음"});
+    //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
+  })
+})
+
+//params
+// app.delete("/delete/:id",(req,res)=>{
+//   // req.body._id = parseInt(req.body._id); // "1" -> 1 문자열을 숫자로 변경
+//   // console.log(req.body)
+//   //req.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제해주세요.
+//   db.collection("post").deleteOne({_id:parseInt(req.params.id)},(error,result)=>{
+//     console.log("삭제 완료")
+//     res.status(200).send({message:"성공 했음"});
+//     //200은 성공코드, 400은 잘못된 메세지, send는 서버에 메시지 보내줄 수 있음
+//   })
+// })
+
+//검색기능
+app.get('/search', async (req,res) => {
+  try {
+    // mongodb search아틸라스
+    const searchFilter = [
+      {
+        $search: {
+          index: 'titleSearch', //정해둔 name
+          text: {
+            query: req.query.value,
+            path: ['title', 'date']  // 제목날짜 둘다 찾고 싶으면 ['제목', '날짜']
+          }
+        }
+      },
+      { $sort : { id:1 } } //아이디로 정렬
+    ]
+    
+    // aggregate() === find
+    const data = await db.collection('post').aggregate(searchFilter).toArray();
+    res.render('search.ejs', {posts: data});
+  } catch(err) {
+    console.log(err);
+    res.status(500).send(err);
+  }
+});
+
+// indexing : 검색을 좀 빠르게 할 수 있음
+
+

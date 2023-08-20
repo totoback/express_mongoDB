@@ -8,6 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
 </head>
 <body>
+  <%-include('./include/nav.ejs')%>
   <h4 class="container mt-4"><strong>글 수정페이지</strong></h4>
 
   <div class="container mt-3">
@@ -16,7 +17,7 @@
       <!-- npm install method-override => PUT,DELETE 메소드 요청 가능 -->
       <div class="form-group">
         <label>오늘의 할일</label>
-        <input type="text" value="<%=post._id%>" name="id" style="display: none;"> 
+        <input type="text" value="<%=post.id%>" name="id" style="display: none;"> 
         <!-- req.body.id = name으로 가져올수있음 value도 -->
         <input value="<%=post.title%>" type="text" class="form-control" name="title">
       </div>
