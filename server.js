@@ -8,6 +8,24 @@ const methodOverride = require("method-override")
 const passport = require("passport")
 const LocalStrategy = require("passport-local").Strategy
 const session = require("express-session")
+let multer = require('multer'); //이미지 멀터
+var storage = multer.diskStorage({
+  destination : function(req, file, cb){
+    cb(null, './public/image')
+  },
+  filename : function(req, file, cb){
+    cb(null, file.originalname )
+  },
+  fileFilter: function (req, file, callback) {
+    //파일 확장자 거르기
+    var ext = path.extname(file.originalname);
+    if(ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+        return callback(new Error('PNG, JPG만 업로드하세요'))
+    }
+    callback(null, true)
+  },
+});
+var upload = multer({storage : storage});
 
 const PORT = 8000;
 
@@ -43,7 +61,19 @@ app.get("/write", (req, res) => {
   res.render("write.ejs");
 });
 
+//이미지
+app.get("/upload",(req,res)=>{
+  res.render("upload.ejs")
+})
+//1. 파일하나만 가져올떄 upload.single("input: name 속성")
+//2. 파일 여러개 가져올떄 upload.array("input:개수")
+app.post("/upload",upload.single("profile"),(req,res)=>{
+  res.send("업로드완료")
+})
 
+app.get("/image/:imageName",(req,res)=>{
+  res.sendFile(__dirname+"/public/image/"+req.params.imageName)
+})
 
 //list 보기기능, add에서 저장된 mongoDB를 불러옴
 app.get("/list",(req,res)=>{
@@ -54,9 +84,6 @@ app.get("/list",(req,res)=>{
     res.render("list.ejs", {posts : result}) // db 불러오는 함수안에 넣어줘야함
   });
 })
-
-
-
 
 //params
 app.get("/detail/:id",(req,res)=>{
